@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#10121b">
+<title>My Home</title>
+
+<style>
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: white;
+    background:
+        radial-gradient(circle at 20% 20%, #424c78, transparent 45%),
+        radial-gradient(circle at 80% 80%, #49375f, transparent 45%),
+        #10121b;
+    background-attachment: fixed;
+    padding: 25px;
+}
+
+.container {
+    max-width: 650px;
+    margin: auto;
+}
+
+.top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 60px;
+}
+
+.logo {
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: 1px;
+}
+
+button {
+    color: white;
+    border: 1px solid #ffffff25;
+    background: #ffffff12;
+    backdrop-filter: blur(20px);
+    border-radius: 14px;
+    padding: 11px 16px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.clock {
+    font-size: clamp(65px, 17vw, 100px);
+    font-weight: 200;
+    letter-spacing: -5px;
+    text-align: center;
+}
+
+.date {
+    text-align: center;
+    color: #ffffff9c;
+    font-size: 16px;
+    margin-top: 5px;
+    margin-bottom: 45px;
+}
+
+.section-title {
+    color: #ffffff80;
+    font-size: 13px;
+    margin-bottom: 17px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 13px;
+}
+
+.tile {
+    min-height: 110px;
+    border: 1px solid #ffffff20;
+    border-radius: 23px;
+    background: #ffffff12;
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: white;
+    transition: .2s;
+    position: relative;
+}
+
+.tile:active {
+    transform: scale(.95);
+}
+
+.icon {
+    font-size: 30px;
+}
+
+.tile span:last-child {
+    font-size: 13px;
+}
+
+.delete {
+    position: absolute;
+    top: 5px;
+    right: 7px;
+    background: #ff4545;
+    border: none;
+    border-radius: 50%;
+    padding: 3px 7px;
+    display: none;
+}
+
+.editing .delete {
+    display: block;
+}
+
+.editing .tile {
+    border: 1px dashed #ffffff80;
+}
+
+.controls {
+    display: none;
+    margin-top: 25px;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.editing .controls {
+    display: flex;
+}
+
+.controls button {
+    flex: 1;
+}
+
+.footer {
+    text-align: center;
+    color: #ffffff50;
+    font-size: 12px;
+    margin-top: 60px;
+}
+
+@media(max-width: 380px) {
+    body { padding: 17px; }
+    .grid { gap: 9px; }
+    .tile { min-height: 95px; }
+}
+</style>
+</head>
+
+<body>
+<div class="container" id="app">
+
+    <div class="top">
+        <div class="logo">MY SPACE.</div>
+        <button onclick="toggleEdit()" id="editBtn">⚙ Настроить</button>
+    </div>
+
+    <div class="clock" id="clock">00:00</div>
+    <div class="date" id="date"></div>
+
+    <div class="section-title">Мои приложения</div>
+
+    <div class="grid" id="grid"></div>
+
+    <div class="controls">
+        <button onclick="addTile()">＋ Добавить плитку</button>
+        <button onclick="changeBackground()">🎨 Изменить фон</button>
+        <button onclick="resetTiles()">↻ Сбросить плитки</button>
+    </div>
+
+    <div class="footer">YOUR SPACE · YOUR RULES</div>
+</div>
+
+<script>
+const defaults = [
+    {name:"YouTube", icon:"▶️", url:"https://youtube.com"},
+    {name:"Telegram", icon:"✈️", url:"https://telegram.org"},
+    {name:"Google", icon:"🔍", url:"https://google.com"},
+    {name:"Музыка", icon:"🎵", url:"https://music.youtube.com"},
+    {name:"Карты", icon:"🗺️", url:"https://maps.google.com"},
+    {name:"GitHub", icon:"💻", url:"https://github.com"}
+];
+
+let tiles = JSON.parse(localStorage.getItem("tiles")) || defaults;
+let editing = false;
+
+function save() {
+    localStorage.setItem("tiles", JSON.stringify(tiles));
+}
+
+function render() {
+    const grid = document.getElementById("grid");
+    grid.innerHTML = "";
+
+    tiles.forEach((tile, index) => {
+        const a = document.createElement("a");
+        a.className = "tile";
+        a.href = tile.url;
+        a.target = "_self";
+
+        const icon = document.createElement("div");
+        icon.className = "icon";
+        icon.textContent = tile.icon;
+
+        const name = document.createElement("span");
+        name.textContent = tile.name;
+
+        const del = document.createElement("button");
+        del.className = "delete";
+        del.textContent = "×";
+        del.onclick = e => {
+            e.preventDefault();
+            e.stopPropagation();
+            tiles.splice(index, 1);
+            save();
+            render();
+        };
+
+        a.append(icon, name, del);
+
+        if (editing) {
+            a.onclick = e => {
+                e.preventDefault();
+                const newName = prompt("Название:", tile.name);
+                if (newName === null) return;
+                const newUrl = prompt("Ссылка:", tile.url);
+                if (newUrl === null) return;
+                const newIcon = prompt("Иконка (эмодзи):", tile.icon);
+                if (newIcon === null) return;
+
+                tiles[index] = {
+                    name: newName,
+                    url: newUrl,
+                    icon: newIcon
+                };
+                save();
+                render();
+            };
+        }
+
+        grid.appendChild(a);
+    });
+}
+
+function toggleEdit() {
+    editing = !editing;
+    document.getElementById("app").classList.toggle("editing", editing);
+    document.getElementById("editBtn").textContent =
+        editing ? "✓ Готово" : "⚙ Настроить";
+    render();
+}
+
+function addTile() {
+    const name = prompt("Название приложения:");
+    if (!name) return;
+
+    const url = prompt("Ссылка приложения (например https://google.com):");
+    if (!url) return;
+
+    const icon = prompt("Эмодзи для плитки:", "🌐") || "🌐";
+
+    tiles.push({name, url, icon});
+    save();
+    render();
+}
+
+function resetTiles() {
+    if (!confirm("Вернуть стандартные плитки?")) return;
+    tiles = [...defaults];
+    save();
+    render();
+}
+
+function changeBackground() {
+    const url = prompt("Вставь ссылку на изображение для фона:");
+    if (!url) return;
+
+    document.body.style.background =
+        `linear-gradient(#0005,#0005), url("${url}") center/cover fixed`;
+
+    localStorage.setItem("background", url);
+}
+
+function updateClock() {
+    const now = new Date();
+
+    document.getElementById("clock").textContent =
+        now.toLocaleTimeString("ru-RU", {
+            hour: "2-digit",
+            minute: "2-digit"
+        });
+
+    document.getElementById("date").textContent =
+        now.toLocaleDateString("ru-RU", {
+            weekday: "long",
+            day: "numeric",
+            month: "long"
+        });
+}
+
+const savedBackground = localStorage.getItem("background");
+if (savedBackground) {
+    document.body.style.background =
+        `linear-gradient(#0005,#0005), url("${savedBackground}") center/cover fixed`;
+}
+
+updateClock();
+setInterval(updateClock, 1000);
+render();
+</script>
+</body>
+</html>
